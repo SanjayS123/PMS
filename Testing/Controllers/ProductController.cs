@@ -20,7 +20,7 @@ namespace Pms.Server.Controllers
 
         [HttpGet("GetAllPagination")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAll([FromBody] PaginationRequest request)
+        public async Task<IActionResult> GetAll([FromBody] ProductListRequest request)
         {
             var result = await _productService.GetAllAsync(request);
             return Ok(new
