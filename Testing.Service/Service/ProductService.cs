@@ -53,8 +53,11 @@ namespace Pms.Service.Service
 
         public async Task<(List<ProductResponseDto> data, Paginationresponse pagination)> GetAllAsync(ProductListRequest request)
         {
+
+         
             var products = await _productRepo.GetAllAsync();
             var categories = await _categoryRepo.GetAllAsync();
+   
 
             if (products == null)
             {
@@ -69,6 +72,8 @@ namespace Pms.Service.Service
                     "Failed to retrieve categories."
                 );
             }
+            var page = request.Pagination?.PageNumber <= 0 ? 1 : request.Pagination.PageNumber;
+            var size = request.Pagination?.PageSize <= 0 ? 10 : request.Pagination.PageSize;
 
             var categoryLookup = categories
                 //  .Where(c => c.IsActive)
@@ -114,9 +119,9 @@ namespace Pms.Service.Service
             var total = query.Count();
 
 
-            var skip = (request.Pagination.PageNumber - 1) * request.Pagination.PageSize;
+            var skip = (page - 1) * size;
 
-            var pageddata = request.Filter.GetAll == true ? query.ToList() : query.Skip(skip).Take(request.Pagination.PageSize).ToList();
+            var pageddata = request.Filter.GetAll == true ? query.ToList() : query.Skip(skip).Take(size).ToList();
 
 
 
@@ -146,9 +151,9 @@ namespace Pms.Service.Service
             var pagination = new Paginationresponse
             {
                 Total = total,
-                Page = request.Pagination.PageNumber,
-                Limit = request.Pagination.PageSize,
-                TotalPages = (int)Math.Ceiling(total / (double)request.Pagination.PageSize)
+                Page =page,
+                Limit = size,
+                TotalPages = (int)Math.Ceiling(total / (double)size)
             };
 
             return (data, pagination);

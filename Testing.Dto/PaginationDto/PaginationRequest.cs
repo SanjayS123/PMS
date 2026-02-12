@@ -31,7 +31,7 @@ namespace Pms.Dto.PaginationDto
 
     public class Productfilter
     {
-        public bool? GetAll { get; set; }
+        public bool? GetAll { get; set; } = false;
         public int? CategoryId { get; set; }
 
         public DateTime? FromDate { get; set; }

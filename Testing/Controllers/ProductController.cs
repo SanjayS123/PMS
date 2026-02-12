@@ -18,7 +18,7 @@ namespace Pms.Server.Controllers
             _productService = productService;
         }
 
-        [HttpGet("GetAllPagination")]
+        [HttpPost("GetAllPagination")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAll([FromBody] ProductListRequest request)
         {
