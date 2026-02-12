@@ -51,10 +51,13 @@ namespace Pms.Service.Service
             return true;
         }
 
-        public async Task<(List<ProductResponseDto> data,Paginationresponse pagination)> GetAllAsync(PaginationRequest request)
+        public async Task<(List<ProductResponseDto> data, Paginationresponse pagination)> GetAllAsync(ProductListRequest request)
         {
+
+         
             var products = await _productRepo.GetAllAsync();
             var categories = await _categoryRepo.GetAllAsync();
+   
 
             if (products == null)
             {
@@ -69,44 +72,91 @@ namespace Pms.Service.Service
                     "Failed to retrieve categories."
                 );
             }
+            var page = request.Pagination?.PageNumber <= 0 ? 1 : request.Pagination.PageNumber;
+            var size = request.Pagination?.PageSize <= 0 ? 10 : request.Pagination.PageSize;
 
             var categoryLookup = categories
-              //  .Where(c => c.IsActive)
+                //  .Where(c => c.IsActive)
                 .ToDictionary(c => c.CategoryId, c => c.CategoryName);
 
-                var filteredproducts = products
-                .Where(p => p.IsActive)
-                .Where(p =>
-                    string.IsNullOrEmpty(request.Search) ||
-                    p.ProductName.Contains(request.Search, StringComparison.OrdinalIgnoreCase) ||
-                    categoryLookup[p.CategoryId].Contains(request.Search, StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(p => p.UpdatedDate ?? p.CreatedDate);
+            var query = products.AsQueryable();
+            if (request.Filter.CategoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == request.Filter.CategoryId);
 
-            var totalproducts = filteredproducts.Count();
+            }
+            if (request.Filter.FromDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedDate >= request.Filter.FromDate);
+            }
+            if (request.Filter.ToDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedDate <= request.Filter.ToDate);
+            }
+            if (!string.IsNullOrEmpty(request.Filter.Search))
+                query = query.Where(p =>
+                    p.ProductName.Contains(request.Filter.Search, StringComparison.OrdinalIgnoreCase) ||
+                    categoryLookup[p.CategoryId].Contains(request.Filter.Search, StringComparison.OrdinalIgnoreCase));
 
-            var pageddata = filteredproducts
-                .Skip((request.PageNumber - 1) * request.PageSize)
-                .Take(request.PageSize)
-                .Select(p => new ProductResponseDto
-                {
-                    ProductId = p.ProductId,
-                    ProductName = p.ProductName,
-                    CategoryName = categoryLookup.TryGetValue(
-                        p.CategoryId, out var categoryName)
-                            ? categoryName
-                            : "N/A",
-                    Price = p.Price,
-                    ProductImageUrl = p.ProductImageUrl
-                }).ToList();
+            bool desc = string.Equals(request.Filter.Order, "desc", StringComparison.OrdinalIgnoreCase);
+
+            query = (request.Filter.OrderBy ?? "").ToLower() switch
+            {
+                "productname" => desc ? query.OrderByDescending(p => p.ProductName)
+                                      : query.OrderBy(p => p.ProductName),
+
+                "categoryname" => desc ? query.OrderByDescending(p => categoryLookup[p.CategoryId])
+                                       : query.OrderBy(p => categoryLookup[p.CategoryId]),
+
+                "price" => desc ? query.OrderByDescending(p => p.Price)
+                                : query.OrderBy(p => p.Price),
+
+                _ => desc ? query.OrderByDescending(p => p.UpdatedDate ?? p.CreatedDate)
+                          : query.OrderBy(p => p.UpdatedDate ?? p.CreatedDate)
+            };
+
+
+            var total = query.Count();
+
+
+            var skip = (page - 1) * size;
+
+            var pageddata = request.Filter.GetAll == true ? query.ToList() : query.Skip(skip).Take(size).ToList();
+
+
+
+            var data = pageddata.Select(p => new ProductResponseDto
+            {
+                ProductId = p.ProductId,
+                ProductName = p.ProductName,
+                CategoryName = categoryLookup[p.CategoryId],
+                Price = p.Price,
+                ProductImageUrl = p.ProductImageUrl
+            }).ToList();
+            //var pageddata = filteredproducts
+            //    .Skip((request.PageNumber - 1) * request.PageSize)
+            //    .Take(request.PageSize)
+            //    .Select(p => new ProductResponseDto
+            //    {
+            //        ProductId = p.ProductId,
+            //        ProductName = p.ProductName,
+            //        CategoryName = categoryLookup.TryGetValue(
+            //            p.CategoryId, out var categoryName)
+            //                ? categoryName
+            //                : "N/A",
+            //        Price = p.Price,
+            //        ProductImageUrl = p.ProductImageUrl
+            //    }).ToList();
 
             var pagination = new Paginationresponse
             {
-                Total = totalproducts,
-                Page = request.PageNumber,
-                Limit = request.PageSize,
-                TotalPages = (int)Math.Ceiling((double)totalproducts / request.PageSize)
+                Total = total,
+                Page =page,
+                Limit = size,
+                TotalPages = (int)Math.Ceiling(total / (double)size)
             };
-            return (pageddata, pagination);
+
+            return (data, pagination);
 
 
         }
