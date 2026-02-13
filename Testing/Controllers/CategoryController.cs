@@ -29,9 +29,9 @@ namespace Pms.Server.Controllers
             return Ok("Category created successfully");
         }
 
-        [HttpGet("GetAllPagination")]
+        [HttpPost("GetAllPagination")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllPagination([FromBody] PaginationRequest request)
+        public async Task<IActionResult> GetAllPagination([FromBody] Categorylistrequest request)
         {
             var result = await _categoryService.GetAllAsync(request);
             return Ok(new

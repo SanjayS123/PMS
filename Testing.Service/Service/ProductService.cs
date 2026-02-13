@@ -7,7 +7,6 @@ using PmsRepository.Interface;
 using PmsRepository.Models;
 using Shared.Exceptions;
 using System.ComponentModel.DataAnnotations;
-
 namespace Pms.Service.Service
 {
     public class ProductService : IProductService

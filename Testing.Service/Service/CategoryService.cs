@@ -94,7 +94,7 @@ namespace Pms.Service.Service
             return true;
         }
 
-        public async Task<(List<CategoryResponseDto>data,Paginationresponse pagination)> GetAllAsync(PaginationRequest request)
+        public async Task<(List<CategoryResponseDto>data,Paginationresponse pagination)> GetAllAsync(Categorylistrequest request)
         {
             try
             {
@@ -106,39 +106,69 @@ namespace Pms.Service.Service
                         "Failed to retrieve categories."
                     );
                 }
-                var filteredCategories = categories
-       // .Where(c => c.IsActive)
-        .Where(c =>
-            string.IsNullOrEmpty(request.Search) ||
-            c.CategoryName.Contains(request.Search, StringComparison.OrdinalIgnoreCase)
-        );
-                var totalRecords = filteredCategories.Count();
 
-                var pagedData = filteredCategories
-                    .OrderByDescending(c => c.CategoryId)
-                    .Skip((request.PageNumber - 1) * request.PageSize)
-                    .Take(request.PageSize)
-                    .Select(c => new CategoryResponseDto
-                    {
-                        CategoryId = c.CategoryId,
-                        CategoryName = c.CategoryName,
-                        IsActive = c.IsActive,
-                        CategoryDescription = c.CategoryDescription,
-                        CategoryImageUrl = c.CategoryImageUrl,
-                        
-                        
-                    })
-                    .ToList();
+                var page = request.Pagination?.PageNumber <= 0 ? 1 : request.Pagination.PageNumber;
+                var size = request.Pagination?.PageSize <= 0 ? 10 : request.Pagination.PageSize;
+
+                var query = categories.AsQueryable();
+                if (!string.IsNullOrEmpty(request.Filter?.Search))
+                {
+                    query = query.Where(c =>
+                        c.CategoryName.Contains(request.Filter.Search,
+                        StringComparison.OrdinalIgnoreCase));
+                }
+                // Filter by CategoryId
+                if (request.Filter?.CategoryId.HasValue == true)
+                {
+                    query = query.Where(c => c.CategoryId == request.Filter.CategoryId.Value);
+                }
+
+                // Filter by Active / Inactive
+                if (request.Filter?.IsActive.HasValue == true)
+                {
+                    query = query.Where(c => c.IsActive == request.Filter.IsActive.Value);
+                }
+                // SORTING
+                bool desc = string.Equals(request.Filter?.Order, "desc",
+                    StringComparison.OrdinalIgnoreCase);
+
+                query = (request.Filter?.OrderBy ?? "").ToLower() switch
+                {
+                    "categoryname" => desc ? query.OrderByDescending(c => c.CategoryName)
+                                           : query.OrderBy(c => c.CategoryName),
+
+                    "isactive" => desc ? query.OrderByDescending(c => c.IsActive)
+                                       : query.OrderBy(c => c.IsActive),
+
+                    _ => desc ? query.OrderByDescending(c => c.CategoryId)
+                              : query.OrderBy(c => c.CategoryId)
+                };
+                var total = query.Count();
+
+                var skip = (page - 1) * size;
+
+                var pageddata = request.Filter?.GetAll == true
+                    ? query.ToList()
+                    : query.Skip(skip).Take(size).ToList();
+
+                var data = pageddata.Select(c => new CategoryResponseDto
+                {
+                    CategoryId = c.CategoryId,
+                    CategoryName = c.CategoryName,
+                    IsActive = c.IsActive,
+                    CategoryDescription = c.CategoryDescription,
+                    CategoryImageUrl = c.CategoryImageUrl
+                }).ToList();
 
                 var pagination = new Paginationresponse
                 {
-                    Total = totalRecords,
-                    Page = request.PageNumber,
-                    Limit = request.PageSize,
-                    TotalPages = (int)Math.Ceiling((double)totalRecords / request.PageSize)
+                    Total = total,
+                    Page = page,
+                    Limit = size,
+                    TotalPages = (int)Math.Ceiling(total / (double)size)
                 };
 
-                return (pagedData, pagination);
+                return (data, pagination);
             }
             catch (Exception ex)
             {

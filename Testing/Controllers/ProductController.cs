@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pms.Dto.categoryDto;
 using Pms.Dto.PaginationDto;
 using Pms.Dto.ProductDto;
 using Pms.Service.Interface;

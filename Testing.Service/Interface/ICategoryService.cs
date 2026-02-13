@@ -10,7 +10,7 @@ namespace Pms.Service.Interface
 {
     public interface ICategoryService
     {
-        Task<(List<CategoryResponseDto> data, Paginationresponse pagination)> GetAllAsync(PaginationRequest request);
+        Task<(List<CategoryResponseDto> data, Paginationresponse pagination)> GetAllAsync(Categorylistrequest request);
         Task<CategoryDetailsDto> GetByIdAsync(int id);
         Task CreateAsync(CategoryCreateDto categoryCreateDto);
         Task<bool> UpdateAsync(int id,CategoryUpdateDto categoryUpdateDto);

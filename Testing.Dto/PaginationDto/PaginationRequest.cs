@@ -22,18 +22,18 @@ namespace Pms.Dto.PaginationDto
         public int Limit { get; set; }
         public int TotalPages { get; set; }
     }
-    public class ProductListRequest
+    public class Categorylistrequest
     {
         public PaginationRequest Pagination { get; set; }
-        public Productfilter Filter { get; set; } = new Productfilter();
+        public categoryfilter Filter { get; set; } = new categoryfilter();
     }
 
 
-    public class Productfilter
+    public class categoryfilter
     {
         public bool? GetAll { get; set; } = false;
         public int? CategoryId { get; set; }
-
+        public bool? IsActive { get; set; }
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
 
